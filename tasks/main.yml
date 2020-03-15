@@ -1,0 +1,47 @@
+---
+# tasks file for mysql
+
+- name: Install mysql-server
+  apt:
+    name: mysql-server
+    state:  latest
+    update_cache: yes
+  notify: Enable mysql
+
+- name: Configure mysql
+  lineinfile:
+    path: /etc/mysql/mysql.conf.d/mysqld.cnf
+    state: present
+    line: "{{item}}"
+  loop:
+    - bind-address		= 127.0.0.1
+    - bind-address		= XXX.XXX.XXX.XXX ( The ip address of your Public Net interface. )
+    - bind-address		= ZZZ.ZZZ.ZZZ.ZZZ ( The ip address of your Service Net interface. )
+    - bind-address		= 0.0.0.0 ( All ip addresses. ) 
+  notify: Reload mysql
+
+- name: Configure firewall
+  ufw:
+    rule: allow
+    port: "{{mysql_port}}"
+    proto: tcp
+  notify: Reload mysql
+
+- name: Configure user
+  user:
+    name: "{{web_app_user}}"
+    state: present
+
+- name: Setup mysql user
+  mysql_user:
+    name: "{{web_app_user}}"
+    password: "{{web_app_password}}"
+    priv: '*.*:ALL,GRANT'
+    state: present
+
+- name: Setup mysql database
+  mysql_db:
+    name: "{{web_app_db}}"
+    state: present
+    login_user: "{{web_app_user}}"
+    login_password: "{{web_app_password}}"
